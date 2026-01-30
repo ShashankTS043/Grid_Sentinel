@@ -4,7 +4,8 @@ from typing import Optional
 class Settings(BaseSettings):
     MQTT_BROKER: str
     MQTT_PORT: int
-    MQTT_TOPIC: str
+    # Force the topic to match what you see on the website
+    MQTT_TOPIC: str = "grid/sentinel/data"
     APP_ENV: str
     
     # Existing Demo settings

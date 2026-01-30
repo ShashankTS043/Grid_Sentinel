@@ -9,7 +9,7 @@ class SensorData(BaseModel):
     temperature: float
     current: float
     vibration: float
-    audio_waveform: Optional[List[float]] = [] 
+    audio_waveform: Optional[List[float]] = None 
     timestamp: datetime = Field(default_factory=datetime.now)
 
 # Output Schema (Updated)
