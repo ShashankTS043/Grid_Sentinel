@@ -12,10 +12,13 @@ from app.services.prediction import oracle
 from app.logger import get_logger 
 from pydantic import ValidationError
 
+# --- NEW: IMPORT SMS SERVICE ---
+from app.services.sms import send_sms_alert
+
 # Initialize Logger
 log = get_logger()
 
-# --- 1. GLOBAL MEMORY (The Fix) ---
+# --- 1. GLOBAL MEMORY ---
 latest_readings = {
     "TX_MAIN_01": 0.0,
     "HOUSE_01": 0.0
@@ -88,10 +91,15 @@ def on_message(client, userdata, msg):
             if rate_of_rise > 2.0 and clean_data.temperature > 29.0:
                 log.critical("🚨 ALERT: THERMAL SHOCK! POSSIBLE SHORT CIRCUIT.")
                 db.add(Event(sensor_id=clean_data.sensor_id, event_type="THERMAL_SHOCK", value=rate_of_rise, message="Rapid Heat"))
+                
+                # Cut Power
                 client.publish("grid/control", json.dumps({"command": "OFF"}))
                 print("⚡ SAFETY CUT TRIGGERED: THERMAL SHOCK")
+                
+                # ---> SEND SMS ALERT
+                send_sms_alert(f"Thermal Shock! Temp rose rapidly to {clean_data.temperature}C. Power Cut Triggered.")
 
-            # C. PHYSICAL TAMPERING CHECK (NEW)
+            # C. PHYSICAL TAMPERING CHECK
             # Threshold set to 0.6 to catch the coin scratch (1.0) but ignore noise (0.3)
             if clean_data.vibration > 0.6:
                 log.critical(f"🔨 TAMPERING DETECTED! Level: {clean_data.vibration}")
@@ -102,6 +110,9 @@ def on_message(client, userdata, msg):
                     message="Vibration detected (Hammering/Sawing)"
                 ))
                 print("🚨 ALERT TRIGGERED: PHYSICAL TAMPERING DETECTED!")
+                
+                # ---> SEND SMS ALERT
+                send_sms_alert(f"Physical Tampering Detected! Vibration Level: {clean_data.vibration}")
 
             # D. AUDIO HARMONICS CHECK
             if distortion > 3.0:
@@ -133,6 +144,9 @@ def on_message(client, userdata, msg):
                 message=f"{diff:.2f}A unaccounted for."
             )
             db.add(new_alert)
+            
+            # ---> SEND SMS ALERT
+            send_sms_alert(f"Power Theft Detected! {diff:.2f}A stolen. Check Grid Line 1.")
 
         db.commit()
 
