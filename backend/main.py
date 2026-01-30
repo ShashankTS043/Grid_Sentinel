@@ -5,6 +5,10 @@ from app.config import settings
 from app.database import init_db
 from app.routes import router as api_router
 from app.logger import get_logger
+from dotenv import load_dotenv
+from alerts import send_sms_alert
+
+load_dotenv()
 
 log = get_logger()
 
