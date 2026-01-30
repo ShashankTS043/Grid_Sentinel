@@ -4,22 +4,15 @@ interface GridState {
   temperature: number;
   load: number;
   vibration: number;
-
-  status: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'HEALING';
+  // ADDED 'HEALING' TO THE LIST
+  status: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'HEALING'; 
   countdown: number | null;
-  history: { time: string; temp: number; load: number }[];
-
-  // --- SMS STATE ---
-  smsStatus: { sent: boolean; reason?: string } | null;
-  smsEnabled: boolean;
-
-  // --- ACTIONS ---
+  history: { time: string; temp: number; load: number }[]; 
+  
   setMetrics: (temp: number, load: number, vib: number) => void;
-  setStatus: (status: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'HEALING') => void;
+  // UPDATE HERE TOO
+  setStatus: (status: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'HEALING') => void; 
   setCountdown: (val: number | null) => void;
-
-  setSmsStatus: (s: { sent: boolean; reason?: string } | null) => void;
-  setSmsEnabled: (v: boolean) => void;
 }
 
 export const useGridStore = create<GridState>((set) => ({
@@ -30,36 +23,21 @@ export const useGridStore = create<GridState>((set) => ({
   countdown: null,
   history: [],
 
-  // --- SMS DEFAULTS ---
-  smsStatus: null,
-  smsEnabled: true,
-
-  // --- METRICS ---
-  setMetrics: (temp, load, vib) =>
-    set((state) => {
-      const newPoint = {
-        time: new Date().toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }),
-        temp,
-        load,
-      };
-
-      return {
-        temperature: temp,
-        load,
-        vibration: vib,
-        history: [...state.history, newPoint].slice(-20),
-      };
-    }),
+  setMetrics: (temp, load, vib) => set((state) => {
+    const newPoint = { 
+      time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }), 
+      temp, 
+      load 
+    };
+    const newHistory = [...state.history, newPoint].slice(-20);
+    return { 
+      temperature: temp, 
+      load: load, 
+      vibration: vib,
+      history: newHistory
+    };
+  }),
 
   setStatus: (status) => set({ status }),
   setCountdown: (val) => set({ countdown: val }),
-
-  // --- SMS ACTIONS ---
-  setSmsStatus: (s) => set({ smsStatus: s }),
-  setSmsEnabled: (v) => set({ smsEnabled: v }),
 }));
