@@ -4,7 +4,7 @@
 ![Tech Stack](https://img.shields.io/badge/Stack-FastAPI%20|%20React%20|%20ESP32-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-> **Winner/Project for [Insert Hackathon Name]** > A next-generation smart grid monitoring system that detects power theft, predicts transformer failures, and identifies physical tampering using Audio AI and Physics Engines.
+> A next-generation smart grid monitoring system that detects power theft, predicts transformer failures, and identifies physical tampering using Audio AI and Physics Engines.
 
 ---
 
