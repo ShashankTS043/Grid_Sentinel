@@ -37,3 +37,28 @@ body {
 .glass-panel-glow {
   box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
 }
+
+/* src/index.css */
+
+@media print {
+  /* 1. Force dark mode background on paper */
+  body {
+    -webkit-print-color-adjust: exact; /* for Chrome/Safari */
+    print-color-adjust: exact;         /* Standard modern property */
+    background-color: #0B0E14 !important; 
+  }
+
+  /* 2. Prevent splitting and force a fixed height */
+  .print-break-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    height: 400px !important; 
+    min-height: 400px !important;
+    display: block !important;
+  }
+
+  /* 3. Hide non-essential items */
+  .no-print {
+    display: none !important;
+  }
+}

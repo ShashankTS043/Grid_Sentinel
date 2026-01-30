@@ -1,55 +1,125 @@
-import { Activity, Thermometer } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, Thermometer, FileSpreadsheet, Leaf, Sun, Moon, Wind } from 'lucide-react'; 
+import * as XLSX from 'xlsx'; 
 import { useGridStore } from './store/useGridStore';
 import { useGridSimulation } from './hooks/useGridSimulation';
-import { useRealGridData } from './hooks/useRealGridData'; // Day 8 Hook
+import { useRealGridData } from './hooks/useRealGridData';
+import { useGodMode } from './hooks/useGodMode';
+import { useSoundFX } from './hooks/useSoundFX';
+
+// UI Components
 import { GlassCard } from './components/ui/GlassCard';
+import { Footer } from './components/ui/Footer';
+
+// Visualizations
 import { LiveGraph } from './components/visuals/LiveGraph';
 import { TheftScale } from './components/visuals/TheftScale';
+import { NoiseWave } from './components/visuals/NoiseWave';
+
+// Overlays
 import { CriticalAlert } from './components/overlays/CriticalAlert';
 import { HealingOverlay } from './components/overlays/HealingOverlay';
-import { useGodMode } from './hooks/useGodMode';
+import { GridChat } from './components/overlays/GridChat';
 
-function App() {
-  // --- HACKATHON CONFIGURATION ---
-  // Set this to TRUE only when Member 2 (Backend) is ready.
-  // Set to FALSE to use the built-in Simulator (Safe Mode).
+function App1() {
   const USE_LIVE_DATA = false; 
-  useGodMode();
-
-  // 1. Logic Hooks
-  // If Live Data is OFF, run the internal simulation
-  if (!USE_LIVE_DATA) {
-    useGridSimulation();
-  }
   
-  // Always initialize the Real Data hook (it only activates if USE_LIVE_DATA is true)
-  const { isOffline } = useRealGridData(USE_LIVE_DATA);
+  useGodMode();
+  useSoundFX();
 
-  // 2. State Management
+  if (!USE_LIVE_DATA) { useGridSimulation(); }
+  
+  const { isOffline } = useRealGridData(USE_LIVE_DATA);
   const { temperature, load, vibration, status } = useGridStore();
 
-  return (
-    <div className="min-h-screen bg-industrial-900 text-white p-6 md:p-12 font-sans selection:bg-neon-blue selection:text-black relative overflow-hidden">
-      
-      {/* --- LAYER 1: VISUAL EFFECTS --- */}
+  // ==========================================
+  //      LOGIC ZONE
+  // ==========================================
 
-      {/* --- LAYER 2: OVERLAYS (Z-Index High) --- */}
+  // 1. SMART WEATHER SIMULATOR
+  const [weather, setWeather] = useState({
+    temp: 24,
+    condition: 'Initializing...',
+    windSpeed: 12,
+    solarIntensity: 0, 
+    isNight: false
+  });
+
+  useEffect(() => {
+    const updateWeather = () => {
+      const hour = new Date().getHours();
+      const isNight = hour >= 18 || hour < 6;
+
+      setWeather(prev => ({
+        ...prev,
+        isNight: isNight,
+        temp: isNight ? 18 : 28, 
+        condition: isNight ? 'Clear Night' : 'Sunny',
+        windSpeed: Math.max(5, prev.windSpeed + (Math.random() - 0.5) * 4), 
+        solarIntensity: isNight ? 0 : Math.min(100, Math.max(60, prev.solarIntensity + (Math.random() - 0.5) * 2))
+      }));
+    };
+
+    updateWeather();
+    const interval = setInterval(updateWeather, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+
+  // 2. SUSTAINABILITY METRIC
+  const [co2Saved, setCo2Saved] = useState(1245.50);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCo2Saved(prev => prev + 0.05);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 3. EXCEL EXPORT
+  const handleExport = () => {
+    const data = useGridStore.getState().history;
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Grid_Log");
+    XLSX.writeFile(workbook, `Grid_Sentinel_Log_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
+
+  // 4. CHAOS MODE (Random Emergency Trigger)
+  useEffect(() => {
+    const chaosTimer = setInterval(() => {
+      // Only trigger if system is currently NORMAL (don't interrupt healing)
+      if (useGridStore.getState().status === 'NORMAL') {
+        
+        // 15% Chance every 5 seconds to trigger CRITICAL FAILURE
+        if (Math.random() < 0.15) {
+          useGridStore.getState().setStatus('CRITICAL');
+        }
+
+      }
+    }, 5000); // Checks every 5 seconds
+
+    return () => clearInterval(chaosTimer);
+  }, []);
+
+  return (
+    // LOCKED SCREEN: 'overflow-hidden' and 'h-screen'
+    <div className="h-screen bg-industrial-900 bg-grid-pattern text-white p-6 md:p-8 font-sans selection:bg-neon-blue selection:text-black relative overflow-hidden flex flex-col">
+      
+      {/* --- OVERLAYS --- */}
       <CriticalAlert />
       <HealingOverlay />
-
-      {/* --- LAYER 3: OFFLINE WARNING (Only if Live Data fails) --- */}
+      {/* REMOVED: TheftLocationPopup */}
+      
       {USE_LIVE_DATA && isOffline && (
         <div className="fixed bottom-4 right-4 bg-red-600/90 backdrop-blur text-white px-4 py-2 rounded-full font-mono text-xs animate-pulse z-50 border border-red-400 shadow-[0_0_10px_red]">
            ⚠️ BACKEND DISCONNECTED - CHECK API
         </div>
       )}
 
-      {/* --- LAYER 4: MAIN DASHBOARD CONTENT --- */}
-      
-      {/* HEADER SECTION */}
-      <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-industrial-700 pb-6 relative z-10">
+      {/* HEADER SECTION (Compact) */}
+      <header className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-industrial-700 pb-4 relative z-10 shrink-0">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter mb-2 text-glow-blue">
+          <h1 className="text-4xl font-black tracking-tighter mb-1 text-glow-blue">
             GRID<span className="text-neon-blue">SENTINEL</span>
           </h1>
           <div className="flex items-center gap-2 text-sm font-mono text-gray-400">
@@ -68,77 +138,123 @@ function App() {
           </div>
         </div>
 
-        {/* TOP RIGHT METRICS */}
-        <div className="flex gap-8">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={handleExport} 
+            className="hidden md:flex items-center gap-2 bg-industrial-800 border border-industrial-700 hover:border-neon-blue px-4 py-2 rounded text-xs font-mono transition-colors text-gray-400 hover:text-white"
+          >
+            <FileSpreadsheet size={14} /> EXPORT
+          </button>
+
           <div className="text-right">
-            <p className="text-xs text-gray-500 font-mono uppercase">Grid Freq</p>
-            <p className="text-2xl font-mono font-bold text-white">50.0 <span className="text-sm text-gray-500">Hz</span></p>
+            <p className="text-xs text-green-500 font-mono uppercase flex items-center justify-end gap-1">
+              <Leaf size={10} /> Carbon Offset
+            </p>
+            <p className="text-xl font-mono font-bold text-white">
+              {co2Saved.toFixed(2)} <span className="text-sm text-gray-500">kg</span>
+            </p>
           </div>
+
           <div className="text-right">
             <p className="text-xs text-gray-500 font-mono uppercase">Avg Load</p>
-            <p className="text-2xl font-mono font-bold text-neon-blue text-glow-blue">{load} <span className="text-sm text-gray-500">A</span></p>
+            <p className="text-xl font-mono font-bold text-neon-blue text-glow-blue">{load} <span className="text-sm text-gray-500">A</span></p>
           </div>
         </div>
       </header>
 
-      {/* MAIN GRID LAYOUT */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto md:h-[600px] relative z-10">
+      {/* MAIN GRID LAYOUT (Flex-grow to fill remaining space) */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 min-h-0 relative z-10 pb-16">
         
-        {/* LEFT COLUMN: SENSOR READINGS (3 Cols) */}
-        <div className="md:col-span-3 flex flex-col gap-6">
-          <GlassCard title="Thermal Status" className="flex-1 relative">
-             {/* Badge stays here */}
-             <div className="absolute top-4 right-4 bg-green-900/30 border border-green-500/30 px-2 py-1 rounded text-[10px] font-mono text-green-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]">
-               Est. Savings: $45k
+        {/* LEFT COLUMN: SENSOR READINGS + WEATHER */}
+        <div className="md:col-span-3 flex flex-col gap-4 h-full min-h-0">
+          
+          {/* 1. THERMAL STATUS (Flex-1) */}
+          <GlassCard title="Thermal Status" className="h-[200px] relative flex flex-col justify-between min-h-0">
+             <div className="absolute top-4 right-4 z-10">
              </div>
-
-            {/* FIX: Added 'mt-6' to push this row down so it doesn't hit the badge */}
-            <div className="flex items-center justify-between mb-4 mt-14">
-              <Thermometer size={40} className="text-gray-500" />
-              <span className={`text-4xl font-mono font-bold ${temperature > 80 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
+            <div className="flex items-center justify-between mt-4">
+              <Thermometer size={30} className="text-gray-500" />
+              <span className={`text-3xl font-mono font-bold ${temperature > 80 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
                 {temperature}°C
               </span>
             </div>
-            
-            <p className="text-xs text-gray-500">
-              Optimal Operating Range: <span className="text-white">30-60°C</span>
-            </p>
-            
-            <div className="w-full bg-gray-800 h-1 mt-4 overflow-hidden">
-               <div 
-                 className={`h-full transition-all duration-500 ${temperature > 60 ? 'bg-neon-red' : 'bg-neon-blue'}`} 
-                 style={{ width: `${Math.min((temperature / 100) * 100, 100)}%`}} 
-               />
+            <div className="w-full bg-gray-800 h-1 mt-auto overflow-hidden">
+               <div className={`h-full transition-all duration-500 ${temperature > 60 ? 'bg-neon-red' : 'bg-neon-blue'}`} style={{ width: `${Math.min((temperature / 100) * 100, 100)}%`}} />
             </div>
           </GlassCard>
-          <GlassCard title="Vibration Analysis" className="flex-1">
-            <div className="flex items-center justify-between mb-4">
-              <Activity size={40} className="text-gray-500" />
-              <span className="text-4xl font-mono font-bold">{vibration} <span className="text-sm">Hz</span></span>
+
+          {/* 2. WEATHER & RENEWABLES (Fixed 160px) */}
+          <GlassCard title="Local Renewables" className="h-[200px] shrink-0 flex flex-col justify-between">
+             <div className="flex items-center justify-between">
+               <div className="flex items-center gap-2">
+                 {weather.isNight ? (
+                    <Moon className="text-blue-300" size={16} />
+                 ) : (
+                    <Sun className="text-yellow-400 animate-pulse" size={16} />
+                 )}
+                 <span className="text-lg font-bold text-white">{weather.temp}°C</span>
+               </div>
+               <span className="text-[9px] font-mono text-gray-400 uppercase tracking-widest">{weather.condition}</span>
+             </div>
+
+             <div className="grid grid-cols-2 gap-2 mt-2">
+               <div className="bg-white/5 p-2 rounded border border-white/10">
+                 <div className="flex items-center gap-1 text-[9px] text-gray-400 mb-1">
+                   <Sun size={10} /> SOLAR
+                 </div>
+                 <div className={`text-xs font-mono ${weather.isNight ? 'text-gray-600' : 'text-yellow-400'}`}>
+                    {weather.solarIntensity.toFixed(1)}%
+                 </div>
+               </div>
+               <div className="bg-white/5 p-2 rounded border border-white/10">
+                 <div className="flex items-center gap-1 text-[9px] text-gray-400 mb-1">
+                   <Wind size={10} /> WIND
+                 </div>
+                 <div className="text-xs font-mono text-blue-400">{weather.windSpeed.toFixed(1)} km/h</div>
+               </div>
+             </div>
+             
+             <div className="mt-2 text-[9px] text-center text-green-400 font-mono border-t border-white/10 pt-1">
+               EFFICIENCY: <span className="font-bold">OPTIMAL</span>
+             </div>
+          </GlassCard>
+
+          {/* 3. VIBRATION (Fixed 200px) */}
+          <GlassCard title="Vibration" className="h-[200px] shrink-0 overflow-hidden relative">
+            <div className="absolute top-2 right-4 text-right">
+              <div className="text-lg font-bold font-mono text-neon-blue leading-none">{vibration}</div>
+              <div className="text-[8px] text-gray-500 font-mono">Hz</div>
             </div>
-            <p className="text-xs text-gray-500">
-              Harmonic Stability: <span className="text-neon-blue">98%</span>
-            </p>
+            <div className="mt-[-15px]">
+               <NoiseWave />
+            </div>
           </GlassCard>
         </div>
 
-        {/* MIDDLE COLUMN: MAIN VISUALIZER (6 Cols) */}
-        <div className="md:col-span-6 h-[400px] md:h-full">
+        {/* MIDDLE COLUMN: LIVE GRAPH */}
+        <div className="md:col-span-6 h-full min-h-0 print-break-avoid"> 
           <GlassCard title="Real-Time Digital Twin" className="h-full border-neon-blue/20 p-0 overflow-hidden glass-panel-glow">
              <LiveGraph />
           </GlassCard>
         </div>
 
-        {/* RIGHT COLUMN: ALERTS & THEFT (3 Cols) */}
-        <div className="md:col-span-3 h-[400px] md:h-full">
-           <GlassCard title="Security & Theft" className="h-full bg-red-900/5 border-red-900/20">
+        {/* RIGHT COLUMN: THEFT & CHAT */}
+        <div className="md:col-span-3 flex flex-col gap-4 h-full min-h-0">
+           <GlassCard title="Security & Theft" className="flex-1 bg-red-900/5 border-red-900/20 min-h-0 overflow-hidden">
              <TheftScale />
            </GlassCard>
-        </div>
 
+           <GlassCard title="Grid Assistant" className="flex-1 min-h-0 overflow-hidden">
+             <GridChat />
+           </GlassCard>
+        </div>
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full">
+         <Footer />
       </div>
     </div>
   )
 }
 
-export default App;
+export default App1;
