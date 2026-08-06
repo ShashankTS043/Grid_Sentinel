@@ -45,6 +45,4 @@ Unlike standard IoT monitors, Grid Sentinel uses a dual-engine approach:
 Our team
 1. Shashank T S
 2. Mounish Reddy
-3. Shreekesh S 
-4. Arjun H athreya 
-
+3. Shreekesh S
